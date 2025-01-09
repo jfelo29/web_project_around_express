@@ -8,7 +8,7 @@ const PORT = 3000;
 
 
 app.use('/', usersRouter);
-app.use('/cards', cardsRouter);
+app.use('/', cardsRouter);
 
 
 app.listen(PORT, () => {
