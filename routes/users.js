@@ -1,32 +1,61 @@
+
 const router = require('express').Router();
-const fs = require('fs');
-const path = require('path');
+const { getAllUsers, getUserById } = require('../controllers/users');
+// const fs = require('fs');
+// const path = require('path');
+const User = require('../models/users');
 
-router.get('/users', (req, res) => {
-  const dataPath = path.join(__dirname, '../data', 'users.json');
-  fs.readFile(dataPath, { encoding: 'utf8' }, (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(404).json({ message: 'Error al leer el archivo' });
+router.get('/users', getAllUsers);
+
+router.get('/users/:id', getUserById);
+
+router.post('/users', async (req, res) => {
+  try {
+    const { name, about, avatar } = req.body;
+    const user = new User({ name, about, avatar });
+
+    if (!user === 'usuario no encontrado') {
+      return res.status(404).send({ message: 'usuario no encontrado' });
     }
-    const users = JSON.parse(data);
-    return res.json(users);
-  });
+    await user.save();
+    return res.status(201).send(user);
+  } catch (error) {
+    return res.status(500).send({ message: 'Error al obtener el usuario' });
+  }
+});
+router.patch('/users/me', async (req, res) => {
+  try {
+    console.log(req.user);
+    const { name, about, avatar } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).send({ message: 'Usuario no encontrado' });
+    }
+    user.name = name;
+    user.about = about;
+    user.avatar = avatar;
+    await user.save();
+    return res.status(200).send(user);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({ message: 'Error al actualizar el perfil' });
+  }
 });
 
-router.get('/users/:id', (req, res) => {
-  const userId = req.params.id;
-  const dataPath = path.join(__dirname, '../data', 'users.json');
-  fs.readFile(dataPath, { encoding: 'utf8' }, (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(404).json({ message: 'Error al leer el archivo' });
+router.patch('/users/me/avatar', async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).send({ message: 'Usuario no encontrado' });
     }
-    const users = JSON.parse(data);
-    const user = users.find((item) => item._id === userId);
-    if (!user) { res.send({ error: 'Este usuario no existe' }); }
-    return res.json(user);
-  });
+    user.avatar = avatar;
+    await user.save();
+    return res.status(200).send(user);
+  } catch (error) {
+    return res.status(500).send({ message: 'Error al actualizar el avatar' });
+  }
 });
-
 module.exports = router;
+
+
