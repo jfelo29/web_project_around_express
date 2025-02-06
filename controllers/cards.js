@@ -22,36 +22,71 @@ const createCard = async (req, res) => {
 
 const deleteCard = async (req, res) => {
   try {
-    const card = await Card.findById(req.params.cardId).orFail();
-
-    await card.remove();
-    return res.status(204).send({ message: 'Tarjeta eliminada' });
+    // const deleteCard = await Card.findByIdAndDelete(req.params.cardId);
+    const deleteCard = await Card.findByIdAndDelete(req.params.cardId).orFail(() => res.status(400).send({ message: 'tarjeta eliminada' })).then((card) => res.status(200).send({ message: 'tarjeta eliminada', card }));
   } catch (error) {
+    console.log(error);
     return res.status(500).send({ message: 'Error al eliminar la tarjeta' });
   }
 };
 
-const likeCard = async (req, res) => {
+/* const deleteCard = async (req, res) => {
   try {
-    const card = await Card.findByIdAndUpdate(req.params.cardId, {
-      isLiked: true,
+    const card = await Card.findByIdAndRemove(req.params.cardId, {
+      isCreated: false,
     }, { new: true }).orFail();
 
 
-    return res.status(204).send({ message: 'like agregado', card });
+    return res.status(200).send({ message: 'tarjeta eliminada', card });
   } catch (error) {
+    return res.status(500).send({ message: 'Error al al eliminar el tarjeta' });
+  }
+};
+*/
+
+/* const deleteCard = async (req, res) => {
+    try {
+      const card = await Card.findById(req.params.cardId).orFail();
+
+      await card.remove();
+      return res.status(204).send({ message: 'Tarjeta eliminada' });
+    } catch (error) {
+      return res.status(500).send({ message: 'Error al eliminar la tarjeta' });
+    }
+  }; */
+
+const likeCard = async (req, res) => {
+  try {
+    console.log(req.params.cardId);
+    const userId = req.user._id;
+    const cardLike = await Card.findByIdAndUpdate(
+      req.params.cardId,
+
+      { $addToSet: { likes: userId } },
+      { new: true },
+    ).orFail();
+
+    if (cardLike.likes.includes(req.user._id)) {
+      return res.status(200).send({ message: 'like ya existe', cardLike });
+    }
+
+
+    // return res.status(204).send({ message: 'like agregado', card });
+  } catch (error) {
+    console.log(error);
     return res.status(500).send({ message: 'error al querer poner like' });
   }
 };
 
+
 const deleteCardLikes = async (req, res) => {
   try {
-    const card = await Card.findByIdAndUpdate(req.params.cardId, {
-      isLiked: false,
-    }, { new: true }).orFail();
-    /* if (!card) {
-      return res.status(404).send({ message: 'Tarjeta no encontrada' });
-    } */
+    const card = await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $pull: { likes: req.user._id } },
+      { new: true },
+    ).orFail();
+
 
     return res.status(200).send({ message: 'like eliminado', card });
   } catch (error) {
@@ -60,12 +95,6 @@ const deleteCardLikes = async (req, res) => {
 };
 
 
+
+
 module.exports = { getAllCards, createCard, deleteCard, deleteCardLikes, likeCard };
-
-
-
-
-
-
-
-
